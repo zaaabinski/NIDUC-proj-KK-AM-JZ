@@ -34,7 +34,7 @@ class BCH:
 
     def dekoduj(self, dane):
         """
-        Dekodowanie danych BCH. W tym przypadku poprawiamy 1 błąd.
+        Dekodowanie danych BCH. W tym przypadku poprawiamy do 2 błędów.
         :param dane: Zakodowane dane (np. 15 bitów w BCH(15, 8))
         :return: Oryginalne dane (8 bitów) w formie listy
         """
@@ -52,7 +52,8 @@ class BCH:
         if max(syndrom[-self.m:]) == 0:
             return dane[:self.k]  # Pierwsze k bitów to oryginalne dane
 
-        # Korekcja błędu (przeszukiwanie)
+        # Korekcja błędów (do 2 błędów)
+        błędy = []  # Lista pozycji błędów
         for i in range(len(dane)):
             dane_testowe = dane[:]
             dane_testowe[i] ^= 1  # Inwersja jednego bitu
@@ -62,8 +63,19 @@ class BCH:
                     for k in range(len(self.generator)):
                         syndrom_testowe[j + k] ^= self.generator[k]
             if max(syndrom_testowe[-self.m:]) == 0:
-                return dane_testowe[:self.k]  # Znaleziono poprawne dane
+                błędy.append(i)  # Jeśli syndrom testowy jest zerowy, to jest błąd w tym miejscu
 
-        # Jeśli nie można naprawić, zwracamy pierwsze k bitów, ale odnotowujemy błędy
-        print("Nie udało się naprawić danych. Zwracam dane z możliwymi błędami.")
+        # Jeśli wykryto błędy, poprawiamy je
+        if len(błędy) == 1:
+            dane[błędy[0]] ^= 1  # Naprawiamy pierwszy błąd
+            return dane[:self.k]  # Zwracamy naprawione dane
+
+        # Jeśli wykryto 2 błędy, poprawiamy
+        if len(błędy) == 2:
+            dane[błędy[0]] ^= 1  # Naprawiamy pierwszy błąd
+            dane[błędy[1]] ^= 1  # Naprawiamy drugi błąd
+            return dane[:self.k]  # Zwracamy naprawione dane
+
+        # Jeśli wykryto więcej niż 2 błędy, nie możemy ich naprawić
+        print("Za dużo błędów. Zwracam dane z możliwymi błędami.")
         return dane[:self.k]
