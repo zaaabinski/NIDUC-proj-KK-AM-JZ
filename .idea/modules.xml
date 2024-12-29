@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/NIDUC FEC.iml" filepath="$PROJECT_DIR$/.idea/NIDUC FEC.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/FEC.iml" filepath="$PROJECT_DIR$/.idea/FEC.iml" />
     </modules>
   </component>
 </project>

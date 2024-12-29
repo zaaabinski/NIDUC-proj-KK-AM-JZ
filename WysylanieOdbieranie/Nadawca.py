@@ -22,9 +22,9 @@ class Nadawca:
         Zwraca:
         - Lista bitów po przesłaniu przez kanał.
         """
-        print("Nadawca: Wysyłam dane:", dane)
+        #print("Nadawca: Wysyłam dane:", dane)
         dane_po_kanale = self.kanal.transmituj(dane)
-        print("Nadawca: Dane po przejściu przez kanał:", dane_po_kanale)
+       # print("Nadawca: Dane po przejściu przez kanał:", dane_po_kanale)
         return dane_po_kanale
 
 

@@ -1,3 +1,6 @@
+from random import random
+
+
 class KanalGilbertaElliotta:
     """
     Model kanału Gilberta-Elliotta, który symuluje błędy grupowe.
