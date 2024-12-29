@@ -24,4 +24,4 @@ def SymulujBCH(dane_wejsciowe):
 
     # Obliczenie liczby błędów
     bledy = zlicz_bledy_bch(dane_wejsciowe, odkodowane_dane)
-    return bledy
+    return bledy, odkodowane_dane, dane_po_kanale
