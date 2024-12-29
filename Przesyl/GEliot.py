@@ -1,5 +1,4 @@
-from random import random
-
+import random  # Correctly import the random module
 
 class KanalGilbertaElliotta:
     """
