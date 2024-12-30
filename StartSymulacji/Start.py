@@ -28,16 +28,18 @@ for dane_wejsciowe in dane_bin:
     print_separator()
 
     # powielanie
-    bledy_powielanie, dane_po_powielaniu, dane_po_bsc_powielanie = SymulacjaDlaPowielania.SymulujPowielanie(dane_wejsciowe)
+    bledy_powielanie, dane_po_powielaniu, dane_po_bsc_powielanie, dane_zakodowane_powielanie = SymulacjaDlaPowielania.SymulujPowielanie(dane_wejsciowe)
     ilosc_bledow_dla_Powielania += bledy_powielanie
     print(f"Powielanie - błędy w pakiecie: {bledy_powielanie}")
+    print(f"Powielanie - dane zakodowane:        {dane_zakodowane_powielanie}")
     print(f"Powielanie - dane po transmisji BSC: {dane_po_bsc_powielanie}")
     print(f"Powielanie - dane po korekcji: {dane_po_powielaniu}")
 
     #bch
-    bledy_BCH, dane_po_bch, dane_po_bsc_bch = SymulacjaDlaBCH.SymulujBCH(dane_wejsciowe)
+    bledy_BCH, dane_po_bch, dane_po_bsc_bch, dane_zakodowane_bch = SymulacjaDlaBCH.SymulujBCH(dane_wejsciowe)
     ilosc_bledow_dla_BCH += bledy_BCH
     print(f"BCH      - błędy w pakiecie: {bledy_BCH}")
+    print(f"BCH      - dane zakodowane:        {dane_zakodowane_bch}")
     print(f"BCH      - dane po transmisji BSC: {dane_po_bsc_bch}")
     print(f"BCH      - dane po korekcji: {dane_po_bch}")
     print_separator()

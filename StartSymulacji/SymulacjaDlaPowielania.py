@@ -17,4 +17,4 @@ def SymulujPowielanie(dane_wejsciowe):
 
     # Obliczenie liczby błędów
     bledy = zlicz_bledyPowielanie(dane_wejsciowe, odkodowane_dane)
-    return bledy, odkodowane_dane, dane_po_kanale
+    return bledy, odkodowane_dane, dane_po_kanale, zakodowane
