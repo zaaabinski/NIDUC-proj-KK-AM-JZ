@@ -2,9 +2,9 @@ from Kody.PowielanieBitow import PowielanieBitow
 from ObslugaDanych.LiczenieBledow import zlicz_bledyPowielanie
 from Przesyl.BSC import KanalBSC
 
-def SymulujPowielanie(dane_wejsciowe):
-    kanal_bsc = KanalBSC(prawd_bledu=0.1)
-    powielanie = PowielanieBitow(liczba_powtorzen=3)
+def SymulujPowielanie(dane_wejsciowe, error_prob=0.1, repetitions=3):
+    kanal_bsc = KanalBSC(prawd_bledu=error_prob)
+    powielanie = PowielanieBitow(liczba_powtorzen=repetitions)
 
     # Zakodowanie danych
     zakodowane = powielanie.koduj(dane_wejsciowe)

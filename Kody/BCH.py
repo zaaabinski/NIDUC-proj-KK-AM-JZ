@@ -1,81 +1,55 @@
+import galois
+import numpy as np
+from config import BCH_N, BCH_K, validate_bch_params
+
 class BCH:
-    def __init__(self, n=15, k=8):
+    def __init__(self):
         """
-        Klasa obsługująca kodowanie i dekodowanie za pomocą kodu BCH.
-        :param n: Długość zakodowanych danych (np. BCH(15, 8) -> n=15)
-        :param k: Długość oryginalnych danych (np. BCH(15, 8) -> k=8)
+        Initialize a BCH code with parameters from config.py
         """
-        self.n = n
-        self.k = k
-        self.m = n - k  # Liczba bitów nadmiarowych
-        self.generator = [1, 0, 1, 1]  # Przykładowy wielomian generujący (dla uproszczenia)
-
-    def koduj(self, dane):
+        validate_bch_params()
+        self.n = BCH_N
+        self.k = BCH_K
+        self.bch = galois.BCH(self.n, self.k)
+        self.field = self.bch.field
+        
+    def koduj(self, message):
         """
-        Kodowanie danych za pomocą BCH.
-        :param dane: Oryginalne dane wejściowe w formie listy bitów (np. [1, 0, 1, 0, 1, 0, 1, 0])
-        :return: Zakodowane dane w formie listy bitów
+        Encode a message using BCH code.
+        
+        Args:
+            message: Input message as a list of bits
+            
+        Returns:
+            Encoded message as a list
         """
-        if len(dane) != self.k:
-            raise ValueError(f"Długość danych wejściowych musi wynosić {self.k} bitów.")
-
-        # Dodajemy bity nadmiarowe (na początku jako zera)
-        dane_rozszerzone = dane + [0] * self.m
-
-        # Obliczamy resztę z dzielenia wielomianowego
-        for i in range(len(dane)):
-            if dane_rozszerzone[i] == 1:  # Dzielimy, tylko jeśli bit jest równy 1
-                for j in range(len(self.generator)):
-                    dane_rozszerzone[i + j] ^= self.generator[j]
-
-        # Dodajemy resztę jako bity nadmiarowe
-        bity_nadmiarowe = dane_rozszerzone[-self.m:]
-        return dane + bity_nadmiarowe
-
-    def dekoduj(self, dane):
+        if len(message) != self.k:
+            raise ValueError(f"Message length must be {self.k} bits")
+            
+        # Convert message to GF array
+        message_gf = self.field(message)
+        # Encode the message
+        encoded = self.bch.encode(message_gf)
+        # Convert back to regular list
+        return encoded.tolist()
+        
+    def dekoduj(self, received):
         """
-        Dekodowanie danych BCH. W tym przypadku poprawiamy do 2 błędów.
-        :param dane: Zakodowane dane (np. 15 bitów w BCH(15, 8))
-        :return: Oryginalne dane (8 bitów) w formie listy
+        Decode a received message using BCH code.
+        
+        Args:
+            received: Received message (possibly with errors)
+            
+        Returns:
+            Decoded message as a list
         """
-        if len(dane) != self.n:
-            raise ValueError(f"Długość danych wejściowych musi wynosić {self.n} bitów.")
-
-        # Obliczamy syndrom błędu
-        syndrom = dane[:]
-        for i in range(len(dane) - self.m):
-            if syndrom[i] == 1:  # Dzielimy, tylko jeśli bit jest równy 1
-                for j in range(len(self.generator)):
-                    syndrom[i + j] ^= self.generator[j]
-
-        # Jeśli syndrom jest zerowy, dane są poprawne
-        if max(syndrom[-self.m:]) == 0:
-            return dane[:self.k]  # Pierwsze k bitów to oryginalne dane
-
-        # Korekcja błędów (do 2 błędów)
-        błędy = []  # Lista pozycji błędów
-        for i in range(len(dane)):
-            dane_testowe = dane[:]
-            dane_testowe[i] ^= 1  # Inwersja jednego bitu
-            syndrom_testowe = dane_testowe[:]
-            for j in range(len(dane_testowe) - self.m):
-                if syndrom_testowe[j] == 1:
-                    for k in range(len(self.generator)):
-                        syndrom_testowe[j + k] ^= self.generator[k]
-            if max(syndrom_testowe[-self.m:]) == 0:
-                błędy.append(i)  # Jeśli syndrom testowy jest zerowy, to jest błąd w tym miejscu
-
-        # Jeśli wykryto błędy, poprawiamy je
-        if len(błędy) == 1:
-            dane[błędy[0]] ^= 1  # Naprawiamy pierwszy błąd
-            return dane[:self.k]  # Zwracamy naprawione dane
-
-        # Jeśli wykryto 2 błędy, poprawiamy
-        if len(błędy) == 2:
-            dane[błędy[0]] ^= 1  # Naprawiamy pierwszy błąd
-            dane[błędy[1]] ^= 1  # Naprawiamy drugi błąd
-            return dane[:self.k]  # Zwracamy naprawione dane
-
-        # Jeśli wykryto więcej niż 2 błędy, nie możemy ich naprawić
-        print("Za dużo błędów. Zwracam dane z możliwymi błędami.")
-        return dane[:self.k]
+        if len(received) != self.n:
+            raise ValueError(f"Received message length must be {self.n} bits")
+            
+        # Convert received message to GF array
+        received_gf = self.field(received)
+        # Decode with error count
+        decoded, _ = self.bch.decode(received_gf, errors=True)
+        # Convert back to regular list
+        return decoded.tolist()
+        
