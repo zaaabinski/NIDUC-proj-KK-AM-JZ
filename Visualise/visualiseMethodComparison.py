@@ -27,126 +27,134 @@ def find_latest_distributions():
     
     return latest_files
 
+def format_error_rate(error_prob):
+    """Format error rate for display, handling both small and regular numbers"""
+    if error_prob < 0.0001:  # For very small numbers, use full decimal format
+        return f"{error_prob*100:.6f}%"  # Will show as 0.0001% for 10^-6
+    else:  # For regular numbers, use decimal format
+        return f"{error_prob*100:.1f}".rstrip('0').rstrip('.') + "%"
+
 def create_method_comparison(bch_data, duplicating_data, channel_name, error_prob, save_dir):
     """Create side-by-side comparison of BCH and Duplicating methods for a given channel and error rate"""
     plt.figure(figsize=(15, 8))
     
-    # Get error counts and frequencies for both methods
-    error_counts_bch = []
-    freqs_bch = []
-    error_counts_dup = []
-    freqs_dup = []
+    # Define all possible error counts (0-4)
+    all_error_counts = list(range(5))
+    
+    # Initialize frequency arrays for both methods
+    bch_freqs = [0] * 5
+    dup_freqs = [0] * 5
     
     # Process BCH data
     for col in bch_data.index:
         if col.startswith('errors_'):
             count = int(col.replace('errors_', ''))
-            freq = bch_data[col]
-            if freq > 0:
-                error_counts_bch.append(count)
-                freqs_bch.append(freq)
+            if count < 5:  # Only consider errors 0-4
+                bch_freqs[count] = bch_data[col]
     
     # Process Duplicating data
     for col in duplicating_data.index:
         if col.startswith('errors_'):
             count = int(col.replace('errors_', ''))
-            freq = duplicating_data[col]
-            if freq > 0:
-                error_counts_dup.append(count)
-                freqs_dup.append(freq)
-    
-    # Get union of error counts
-    all_error_counts = sorted(list(set(error_counts_bch + error_counts_dup)))
-    
-    # Prepare data for plotting
-    bch_freqs = []
-    dup_freqs = []
-    for count in all_error_counts:
-        if count in error_counts_bch:
-            idx = error_counts_bch.index(count)
-            bch_freqs.append(freqs_bch[idx])
-        else:
-            bch_freqs.append(0)
-            
-        if count in error_counts_dup:
-            idx = error_counts_dup.index(count)
-            dup_freqs.append(freqs_dup[idx])
-        else:
-            dup_freqs.append(0)
+            if count < 5:  # Only consider errors 0-4
+                dup_freqs[count] = duplicating_data[col]
     
     # Convert to percentages
     total_bch = sum(bch_freqs)
     total_dup = sum(dup_freqs)
-    bch_percent = [f/total_bch * 100 for f in bch_freqs]
-    dup_percent = [f/total_dup * 100 for f in dup_freqs]
+    bch_percent = [f/total_bch * 100 if total_bch > 0 else 0 for f in bch_freqs]
+    dup_percent = [f/total_dup * 100 if total_dup > 0 else 0 for f in dup_freqs]
     
     # Set up bar positions
     x = np.arange(len(all_error_counts))
     width = 0.35
     
+    # Create figure with adjusted size for legend
+    fig = plt.gcf()
+    fig.set_size_inches(15, 8)
+    
     # Create bars
-    plt.bar(x - width/2, bch_percent, width, label='BCH', color='#2ca02c', alpha=0.7)
-    plt.bar(x + width/2, dup_percent, width, label='Duplicating', color='#d62728', alpha=0.7)
+    plt.bar(x - width/2, bch_percent, width, label='Kod BCH', color='#2ca02c', alpha=0.7)
+    plt.bar(x + width/2, dup_percent, width, label='Kod Powtórzeniowy', color='#d62728', alpha=0.7)
     
     # Add value labels on top of bars
     for i in range(len(all_error_counts)):
-        if bch_percent[i] >= 1:
+        if bch_percent[i] >= 0.1:  # Show values ≥ 0.1%
             plt.text(i - width/2, bch_percent[i], f'{bch_percent[i]:.1f}%', 
-                    ha='center', va='bottom', fontsize=10)
-        if dup_percent[i] >= 1:
+                    ha='center', va='bottom', fontsize=14)
+        if dup_percent[i] >= 0.1:  # Show values ≥ 0.1%
             plt.text(i + width/2, dup_percent[i], f'{dup_percent[i]:.1f}%', 
-                    ha='center', va='bottom', fontsize=10)
+                    ha='center', va='bottom', fontsize=14)
+    
+    # Format error rate for title and filename
+    error_rate_str = format_error_rate(error_prob)
     
     # Customize plot
-    plt.title(f'Method Comparison - {channel_name}\nChannel Error Rate: {error_prob:.1%}', 
-             fontsize=14, pad=20)
-    plt.xlabel('Number of Errors in Message', fontsize=12)
-    plt.ylabel('Percentage of Messages (%)', fontsize=12)
-    plt.xticks(x, all_error_counts)
+    plt.title(f'Porównanie Metod - {channel_name}\nPrawdopodobieństwo Błędu Kanału: {error_rate_str}', 
+             fontsize=20, pad=20)
+    plt.xlabel('Liczba Błędów w Wiadomości', fontsize=16)
+    plt.ylabel('Procent Wiadomości (%)', fontsize=16)
+    plt.xticks(x, all_error_counts, fontsize=14)
+    plt.yticks(fontsize=14)
     plt.grid(True, linestyle='--', alpha=0.7)
-    plt.legend(fontsize=10)
     
-    # Add statistics
-    bch_mean = sum(count * freq for count, freq in zip(all_error_counts, bch_freqs)) / total_bch
-    dup_mean = sum(count * freq for count, freq in zip(all_error_counts, dup_freqs)) / total_dup
+    # Set y-axis to go from 0 to 100%
+    plt.ylim(0, 100)
     
+    # Calculate statistics
+    bch_mean = sum(count * freq for count, freq in zip(all_error_counts, bch_freqs)) / total_bch if total_bch > 0 else 0
+    dup_mean = sum(count * freq for count, freq in zip(all_error_counts, dup_freqs)) / total_dup if total_dup > 0 else 0
+    
+    # Calculate max errors (highest error count with non-zero frequency)
+    bch_max = max((i for i, f in enumerate(bch_freqs) if f > 0), default=0)
+    dup_max = max((i for i, f in enumerate(dup_freqs) if f > 0), default=0)
+    
+    # Create statistics text
     stats_text = (
-        f'BCH Statistics:\n'
-        f'Mean Errors: {bch_mean:.2f}\n'
-        f'Max Errors: {all_error_counts[bch_percent.index(max(bch_percent))]}\n'
-        f'Total Messages: {total_bch}\n\n'
-        f'Duplicating Statistics:\n'
-        f'Mean Errors: {dup_mean:.2f}\n'
-        f'Max Errors: {all_error_counts[dup_percent.index(max(dup_percent))]}\n'
-        f'Total Messages: {total_dup}'
+        f'Statystyki Kodu BCH:\n'
+        f'Średnia Liczba Błędów: {bch_mean:.3f}\n'
+        f'Maksymalna Liczba Błędów: {bch_max}\n'
+        f'Liczba Wiadomości: {int(total_bch)}\n\n'
+        f'Statystyki Kodu Powtórzeniowego:\n'
+        f'Średnia Liczba Błędów: {dup_mean:.3f}\n'
+        f'Maksymalna Liczba Błędów: {dup_max}\n'
+        f'Liczba Wiadomości: {int(total_dup)}'
     )
     
-    plt.text(0.98, 0.98, stats_text,
+    # Add legend in the bottom right corner
+    plt.legend(loc='center right', fontsize=14)
+    
+    # Position the stats box in the upper right corner of the plot
+    plt.text(0.98, 0.95, stats_text,
             transform=plt.gca().transAxes,
             verticalalignment='top',
             horizontalalignment='right',
-            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8),
-            fontsize=10)
+            bbox=dict(boxstyle='round', facecolor='white', alpha=0.9, edgecolor='gray'),
+            fontsize=14)
     
-    # Save plot
-    filename = os.path.join(save_dir, 
-                           f'method_comparison_{channel_name.lower().replace(" ", "_")}_{int(error_prob*100)}percent.png')
+    # Adjust layout to prevent text cutoff
+    plt.tight_layout()
+    
+    # Save plot with consistent filename format
+    if error_prob < 0.0001:
+        filename = os.path.join(save_dir, 
+                           f'method_comparison_{channel_name.lower().replace(" ", "_")}_{error_prob*100:.6f}'.replace('.', '_') + 'percent.png')
+    else:
+        filename = os.path.join(save_dir, 
+                           f'method_comparison_{channel_name.lower().replace(" ", "_")}_{error_prob*100:.1f}'.rstrip('0').rstrip('.') + 'percent.png')
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.close()
     
-    print(f"Created method comparison plot for {channel_name} at {error_prob:.1%} error rate")
+    print(f"Created method comparison plot for {channel_name} at {error_rate_str} error rate")
 
-def plot_method_comparisons(files, save_dir='plotsTest3Test133'):
+def plot_method_comparisons(files, save_dir='finalplots'):
     """Create visualizations comparing BCH and Duplicating methods"""
-    # Create directory for plotsTest3Test1331 if it doesn't exist
+    # Create directory for finalplots if it doesn't exist
     save_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), save_dir)
     os.makedirs(save_dir, exist_ok=True)
     
     # Set style
     plt.style.use('default')
-    
-    # Plot settings
-    error_probs_to_show = [0.01, 0.05, 0.1, 0.2, 0.3]  # 1%, 5%, 10%, 20%, 30%
     
     # Group files by method and channel
     bsc_files = {}
@@ -170,18 +178,22 @@ def plot_method_comparisons(files, save_dir='plotsTest3Test133'):
                          'duplicating': pd.read_csv(ge_files['Duplicating'])}
     }
     
+    # Define the error probabilities we want to visualize
+    target_error_probs = [0.000001] + [0.005 + i * 0.005 for i in range(10)]  # 10^-6 and 0.5% to 5% in 0.5% steps
+    
+    # Get unique error probabilities from the data and filter for our target values
+    error_probs = sorted(channel_data['BSC']['bch']['error_prob'].unique())
+    error_probs = [prob for prob in error_probs if float(prob) in target_error_probs]
+    
     # Create method comparisons for each channel and error rate
     for channel_name, data in channel_data.items():
-        for error_prob in error_probs_to_show:
-            # Find closest error probability in BCH data
-            bch_prob = data['bch']['error_prob'].iloc[
-                (data['bch']['error_prob'] - error_prob).abs().argsort()[:1]].values[0]
-            bch_row = data['bch'][data['bch']['error_prob'] == bch_prob].iloc[0]
+        for error_prob_str in error_probs:
+            # Convert string to float for comparison
+            error_prob = float(error_prob_str)
             
-            # Find closest error probability in Duplicating data
-            dup_prob = data['duplicating']['error_prob'].iloc[
-                (data['duplicating']['error_prob'] - error_prob).abs().argsort()[:1]].values[0]
-            dup_row = data['duplicating'][data['duplicating']['error_prob'] == dup_prob].iloc[0]
+            # Get rows for this error probability
+            bch_row = data['bch'][data['bch']['error_prob'] == error_prob_str].iloc[0]
+            dup_row = data['duplicating'][data['duplicating']['error_prob'] == error_prob_str].iloc[0]
             
             # Create comparison plot
             create_method_comparison(bch_row, dup_row, channel_name, error_prob, save_dir)
@@ -194,7 +206,7 @@ if __name__ == "__main__":
         
         # Create visualizations
         plot_method_comparisons(dist_files)
-        print("plotsTest3Test133 have been created successfully in the 'plotsTest3Test133' directory")
+        print("finalplots have been created successfully in the 'finalplots' directory")
         
     except FileNotFoundError as e:
         print(f"Error: {e}")

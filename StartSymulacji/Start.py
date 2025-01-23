@@ -10,6 +10,7 @@ import os
 import multiprocessing as mp
 from tqdm import tqdm
 from collections import defaultdict
+import numpy as np
 
 def count_errors_in_sequence(original, decoded):
     """Count number of errors in a single sequence"""
@@ -38,10 +39,14 @@ def run_simulation(params):
     """
     error_prob, repetitions, input_file = params
     
+    # Store error_prob as string with full precision
+    error_prob_str = f"{error_prob:.6f}"
+    error_prob = float(error_prob_str)  # Convert back to float to ensure exact precision
+    
     # Make input_file path relative to this script's location
     input_file = os.path.join(os.path.dirname(__file__), input_file)
     
-    odczyt = OdczytDanych(input_file)
+    # Initialize counters and distributions
     total_bits = 0
     incorrect_bits_powielanie = 0
     incorrect_bits_bch = 0
@@ -55,8 +60,12 @@ def run_simulation(params):
     error_dist_powielanie_ge = defaultdict(int)
     error_dist_bch_ge = defaultdict(int)
 
-    dane_bin = odczyt.odczytaj_dane()
-
+    # Create a single OdczytDanych instance
+    odczyt = OdczytDanych(input_file)
+    
+    # Read all messages from the file
+    dane_bin = odczyt.odczytaj_dane()  # Let it read all available messages
+    
     for dane_wejsciowe in dane_bin:
         ilosc_danych += 1
         total_bits += len(dane_wejsciowe)
@@ -138,10 +147,12 @@ def run_simulation(params):
 
 def run_error_rate_analysis(min_error=0.01, max_error=0.3, step=0.01, repetitions=3, input_file="dane2.txt"):
     """Run analysis for different error rates with specified intervals using multiple processes"""
-    error_probs = [round(x * step, 3) for x in range(int(min_error/step), int(max_error/step) + 1)]
+    # Use numpy to generate error probabilities to maintain precision
+    error_probs = np.array([min_error + i * step for i in range(int((max_error - min_error) / step) + 1)])
+    error_probs = np.round(error_probs, decimals=6)  # Round to 6 decimal places to avoid floating point issues
     
     # Prepare parameters for parallel processing
-    params = [(prob, repetitions, input_file) for prob in error_probs]
+    params = [(float(prob), repetitions, input_file) for prob in error_probs]
     
     # Get the number of CPU cores (leave one core free for system)
     num_processes = max(1, mp.cpu_count() - 1)
@@ -186,7 +197,7 @@ def save_error_distributions(results, results_dir, timestamp):
             writer.writeheader()
             
             for result in results:
-                row = {'error_prob': result['error_prob']}
+                row = {'error_prob': f"{result['error_prob']:.6f}"}  # Use 6 decimal places for error probability
                 dist = result[f'error_dist_{method_key}']
                 for count in error_counts:
                     row[f'errors_{count}'] = dist.get(count, 0)
@@ -214,13 +225,24 @@ if __name__ == "__main__":
         
         print(f"Results will be saved to: {results_dir}")
         
-        # Run simulation
-        results = run_error_rate_analysis(
-            min_error=0.01,  # 0.5%
-            max_error=0.3,    # 50%
-            step=0.01,       # 0.5% intervals
+        # Run simulation with very low error rate first
+        very_low_error_results = run_error_rate_analysis(
+            min_error=0.000001,  # 10^-6
+            max_error=0.000001,
+            step=0.000001,
             repetitions=3
         )
+        
+        # Run regular simulation
+        regular_results = run_error_rate_analysis(
+            min_error=0.005,    # 0.5%
+            max_error=0.05,     # 5%
+            step=0.005,         # 0.5% intervals
+            repetitions=3
+        )
+        
+        # Combine results
+        results = very_low_error_results + regular_results
         
         # Save main results to CSV
         csv_filename = os.path.join(results_dir, f"simulation_results_{timestamp}.csv")
@@ -234,8 +256,11 @@ if __name__ == "__main__":
             
             writer.writeheader()
             for result in results:
+                # Format error_prob with full precision
+                result_copy = result.copy()
+                result_copy['error_prob'] = f"{result['error_prob']:.6f}"
                 # Create a copy without the distribution data
-                result_copy = {k: v for k, v in result.items() if k not in 
+                result_copy = {k: v for k, v in result_copy.items() if k not in 
                              ['error_dist_powielanie', 'error_dist_bch', 
                               'error_dist_powielanie_ge', 'error_dist_bch_ge']}
                 writer.writerow(result_copy)
