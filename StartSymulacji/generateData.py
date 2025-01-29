@@ -1,4 +1,5 @@
 import random
+import os
 
 def generate_binary_data(rows, filename="dane2.txt"):
     """
@@ -8,18 +9,17 @@ def generate_binary_data(rows, filename="dane2.txt"):
     :param filename: Name of the file to save the data.
     :return: None
     """
-    with open(filename, "w") as file:
+    # Ensure the file is created in the StartSymulacji directory
+    file_path = os.path.join(os.path.dirname(__file__), filename)
+    
+    with open(file_path, "w") as file:
         for _ in range(rows):
-            binary_string = ''.join(random.choice('01') for _ in range(8))
+            # Generate 8-bit binary string
+            binary_string = ''.join(random.choice('01') for _ in range(5))
             file.write(binary_string + "\n")
 
 if __name__ == "__main__":
-    try:
-        num_rows = int(input("Enter the number of rows to generate: "))
-        if num_rows > 0:
-            generate_binary_data(num_rows)
-            print(f"Data successfully saved to dane.txt.")
-        else:
-            print("Please enter a positive integer.")
-    except ValueError:
-        print("Invalid input. Please enter a valid integer.")
+    # Generate 5000 rows of test data by default
+    rows = 1000
+    generate_binary_data(rows)
+    print(f"Generated {rows} rows of test data in dane2.txt")
