@@ -132,12 +132,12 @@ def plot_error_correction_performance(data, save_dir='finalplots'):
     plt.plot(data['error_prob'], data['bch_error_rate_geliot'],
              marker='D', label='Kod BCH (G-E)', linewidth=2, markersize=4)
     
-    plt.title('Porównanie Wszystkich Metod Korekcji Błędów', fontsize=20)
+    plt.title('Porównanie wszystkich metod korekcji błędów', fontsize=20)
     plt.xlabel('Prawdopodobieństwo Błędu Kanału', fontsize=16)
     plt.ylabel('Współczynnik Błędów Po Korekcji', fontsize=16)
     plt.tick_params(axis='both', which='major', labelsize=14)
     plt.grid(True, linestyle='--', alpha=0.7)
-    plt.xlim(0, max(data['error_prob']))
+    plt.xlim(0.05, 0)  # Reversed x-axis from 0.05 to 0
     plt.ylim(0, max(data['error_prob']) * 1.1)  # Scale y-axis to match input error rate
     plt.gca().set_facecolor('#f8f8f8')  # Light gray background
     plt.legend(loc='upper left', fontsize=14)  # Place legend in upper left
